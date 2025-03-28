@@ -1,4 +1,3 @@
-
 🧱 Dependencies
 🐧 WSL Setup
 
@@ -11,7 +10,7 @@ wsl --install
 This config requires a modern Neovim version.
 Tested with: https://github.com/CrespoDB/nvim-config
 
-Recommended install (AppImage for x86_64):
+Install (AppImage for x86_64):
 
 curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
 chmod u+x nvim-linux-x86_64.appimage
@@ -59,7 +58,7 @@ pipx --version
 
     You may need to restart your shell or run exec $SHELL after ensurepath.
 
-⚙️ Install Local Python Scripts (Optional)
+🐍 Install Local Python Scripts (Optional)
 
 cd ~/.config/nvim/scripts
 pipx install .
@@ -76,6 +75,6 @@ cargo install stylua
 
 sudo apt install -y clang-format
 
-🔁 Restart Shell (if needed)
+🔁 Restart Shell
 
 exec $SHELL
