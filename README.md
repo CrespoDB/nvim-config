@@ -1,6 +1,6 @@
 # 🧱 Neovim Config Dependencies
 
-## 📁 WSL Setup
+## 🗂️ WSL Setup
 
 ```bash
 wsl --install
@@ -9,7 +9,7 @@ wsl --install
 ---
 
 ## ⚙️ Neovim (v0.10+ or v0.11+)
-This config requires a modern Neovim version.
+This config requires a modern Neovim version.  
 Tested with: [https://github.com/CrespoDB/nvim-config](https://github.com/CrespoDB/nvim-config)
 
 Install (AppImage for x86_64):
@@ -23,7 +23,24 @@ nvim --version
 
 ---
 
-## 🔼 Golang & GolangCI-Lint
+## 📥 Install This Config
+
+Clone your config into the correct location:
+
+```bash
+rm -rf ~/.config/nvim  # Optional: remove old config
+git clone https://github.com/CrespoDB/nvim-config ~/.config/nvim
+```
+
+Launch Neovim to let plugins install:
+
+```bash
+nvim
+```
+
+---
+
+## 🟨 Golang & GolangCI-Lint
 
 ```bash
 # Install Go
@@ -53,7 +70,7 @@ sudo npm install -g pyright typescript typescript-language-server
 
 ---
 
-## 🪑 Fix Permissions (if Mason fails to install)
+## 🧹 Fix Permissions (if Mason fails to install)
 
 ```bash
 sudo chown -R $(whoami):$(whoami) ~/.local/share/nvim
@@ -61,7 +78,7 @@ sudo chown -R $(whoami):$(whoami) ~/.local/share/nvim
 
 ---
 
-## 🪮 Clean Up Broken Mason Installs (if needed)
+## 🧽 Clean Up Broken Mason Installs (if needed)
 
 ```bash
 rm -rf ~/.local/share/nvim/mason/staging/pyright
@@ -109,7 +126,7 @@ cargo install stylua
 
 ---
 
-## 🪠 Clang Format
+## 🧼 Clang Format
 
 ```bash
 sudo apt install -y clang-format
@@ -117,7 +134,7 @@ sudo apt install -y clang-format
 
 ---
 
-## 🔄 Restart Shell
+## 🔁 Restart Shell
 
 ```bash
 exec $SHELL
