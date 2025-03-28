@@ -140,3 +140,9 @@ sudo apt install -y clang-format
 exec $SHELL
 ```
 
+## 🗂️ Windows Terminal Apperance % Font
+
+![image](https://github.com/user-attachments/assets/6ec02e64-08a0-42ab-a0f6-b060e311cb6e)
+
+Transparency set to 80& Acrylic
+
