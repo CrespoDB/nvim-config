@@ -1,0 +1,8 @@
+defanger.py
+setup.py
+defanger.egg-info/PKG-INFO
+defanger.egg-info/SOURCES.txt
+defanger.egg-info/dependency_links.txt
+defanger.egg-info/entry_points.txt
+defanger.egg-info/requires.txt
+defanger.egg-info/top_level.txt
