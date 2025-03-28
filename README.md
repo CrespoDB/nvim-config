@@ -5,7 +5,9 @@
 ```bash
 wsl --install
 ```
-
+```bash
+sudo apt install ripgrep
+```
 ---
 
 ## ⚙️ Neovim (v0.10+ or v0.11+)
