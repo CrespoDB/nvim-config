@@ -3,7 +3,7 @@
 
 Make sure you have WSL installed:
 
-wsl --install
+<pre> ``` wsl --install``` <pre>
 
 ⚙️ Neovim (v0.10+ or v0.11+)
 
