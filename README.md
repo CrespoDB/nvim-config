@@ -148,3 +148,10 @@ exec $SHELL
 
 Transparency set to 80& Acrylic
 
+## 🗂️ Flow Glow (Visual .md CLI renderer and tool)
+
+```bash
+sudo snap install glow
+```
+
+
