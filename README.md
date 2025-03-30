@@ -148,10 +148,20 @@ exec $SHELL
 
 Transparency set to 80& Acrylic
 
-## 🗂️ Flow Glow (Visual .md CLI renderer and tool)
+## 🗂️ For Markdown
 
 ```bash
 sudo snap install glow
 ```
 
+Vault location (can  be changed in obsidian.lua)
+```
+mkdir -p ~/notes
+```
+
+Java needed for speel check LSP (ltex)
+
+```
+sudo apt install openjdk-17-jre-headless
+```
 
