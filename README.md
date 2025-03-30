@@ -159,3 +159,9 @@ Vault location (can  be changed in obsidian.lua)
 mkdir -p ~/notes
 ```
 
+Java needed for speel check LSP (ltex)
+
+```
+sudo apt install openjdk-17-jre-headless
+```
+
