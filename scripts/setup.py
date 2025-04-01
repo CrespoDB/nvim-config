@@ -1,15 +1,15 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="defanger",
     version="0.2",
-    py_modules=["defanger"],
+    packages=find_packages(),
     install_requires=[
         "tldextract",
     ],
     entry_points={
         "console_scripts": [
-            "defanger=defanger:main",
+            "defanger=defanger.defanger:main",
         ],
     },
 )

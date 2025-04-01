@@ -1,2 +1,2 @@
 [console_scripts]
-defanger = defanger:main
+defanger = defanger.defanger:main

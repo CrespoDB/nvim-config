@@ -1,24 +1,21 @@
-#!/usr/bin/env python3
+# defanger.py
 import sys
 import re
-import ipaddress
-import tldextract
 from urllib.parse import urlparse
+import tldextract
+import ipaddress
+from ioc_utils import extract_iocs
 
 def defang_token(token):
-    # --- Handle email addresses ---
-    # A simple check: if the token contains "@" and a period, assume it's an email.
     if "@" in token and "." in token:
-        token = token.replace("@", "[at]")
+        return token.replace("@", "[at]")
 
-    # --- Handle IP addresses ---
     try:
         ipaddress.ip_address(token)
         return token.replace('.', '[.]').replace(':', '[:]')
     except ValueError:
         pass
 
-    # --- Handle URLs ---
     parsed = urlparse(token)
     if parsed.scheme and parsed.netloc:
         defanged_scheme = parsed.scheme.replace('http', 'hxxp')
@@ -32,7 +29,6 @@ def defang_token(token):
             new_url += "#" + parsed.fragment
         return new_url
 
-    # --- Handle domains ---
     if '.' in token:
         ext = tldextract.extract(token)
         if ext.domain and ext.suffix:
@@ -41,11 +37,8 @@ def defang_token(token):
     return token
 
 def refang_token(token):
-    # Reverse email defanging
     token = token.replace("[at]", "@")
-    # Reverse IP/domain defanging
     token = token.replace("[.]", ".").replace("[:]", ":")
-    # Reverse URL scheme defanging: change hxxp back to http
     token = re.sub(r'\bhxxp(s?)\b', r'http\1', token)
     return token
 
@@ -56,18 +49,22 @@ def refang_text(text):
     return re.sub(r'\S+', lambda m: refang_token(m.group(0)), text)
 
 def main():
-    # Check for '--refang' argument (default is defang)
     mode = "defang"
     if len(sys.argv) > 1 and sys.argv[1] == "--refang":
         mode = "refang"
+
     input_text = sys.stdin.read()
+
     if mode == "defang":
-        output_text = defang_text(input_text)
+        output = defang_text(input_text)
     else:
-        output_text = refang_text(input_text)
-    sys.stdout.write(output_text)
+        output = refang_text(input_text)
+
+    sys.stdout.write(output)
 
 if __name__ == '__main__':
     main()
+
+
 
 
