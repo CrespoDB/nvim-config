@@ -6,11 +6,11 @@ return {
     workspaces = {
       {
         name = "vault",
-        path = "~/notes", -- your vault path
+        path = "~/notes",
       },
     },
     ui = {
-      enable = false, -- render-markdown does ui
+      enable = false, -- handled by render-markdown
     },
     completion = {
       nvim_cmp = true,
@@ -20,5 +20,11 @@ return {
     follow_url_func = function(url)
       vim.fn.jobstart({ "xdg-open", url }) -- works on Linux
     end,
+    templates = {
+      subdir = "templates", -- references ~/notes/templates/
+    },
   },
+  config = function()
+    require("cmds.ticket").setup()
+  end,
 }
