@@ -4,14 +4,16 @@ import re
 from urllib.parse import urlparse
 import tldextract
 import ipaddress
-from ioc_utils import extract_iocs
+from ioc_utils import extract_iocs, save_buffer
 
 def defang_token(token):
     if "@" in token and "." in token:
         return token.replace("@", "[at]")
 
     try:
-        ipaddress.ip_address(token)
+        ip_obj = ipaddress.ip_address(token)
+        if ip_obj.is_private:
+            return token  # Skip private IPs
         return token.replace('.', '[.]').replace(':', '[:]')
     except ValueError:
         pass
@@ -36,17 +38,24 @@ def defang_token(token):
 
     return token
 
+
+
 def refang_token(token):
     token = token.replace("[at]", "@")
     token = token.replace("[.]", ".").replace("[:]", ":")
-    token = re.sub(r'\bhxxp(s?)\b', r'http\1', token)
+    token = re.sub(r"\bhxxp(s?)\b", r"http\1", token)
     return token
 
+
 def defang_text(text):
-    return re.sub(r'\S+', lambda m: defang_token(m.group(0)), text)
+    iocs = extract_iocs(text)
+    save_buffer(iocs)  # Save for enrichment if needed
+    return re.sub(r"\S+", lambda m: defang_token(m.group(0)), text)
+
 
 def refang_text(text):
-    return re.sub(r'\S+', lambda m: refang_token(m.group(0)), text)
+    return re.sub(r"\S+", lambda m: refang_token(m.group(0)), text)
+
 
 def main():
     mode = "defang"
@@ -62,8 +71,11 @@ def main():
 
     sys.stdout.write(output)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
+
+
 
 
 
