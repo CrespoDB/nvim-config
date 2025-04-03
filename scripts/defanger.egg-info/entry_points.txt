@@ -1,2 +1,3 @@
 [console_scripts]
 defanger = defanger.defanger:main
+enricher = defanger.enricher:main

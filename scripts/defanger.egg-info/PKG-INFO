@@ -1,3 +1,6 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: defanger
 Version: 0.2
+Requires-Dist: tldextract
+Requires-Dist: requests
+Dynamic: requires-dist

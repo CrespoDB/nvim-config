@@ -4,19 +4,34 @@ import re
 from urllib.parse import urlparse
 import tldextract
 import ipaddress
-from ioc_utils import extract_iocs
+from .ioc_utils import extract_iocs, save_buffer
 
 def defang_token(token):
-    if "@" in token and "." in token:
-        return token.replace("@", "[at]")
-
+    token = token.strip()  # Remove any surrounding whitespace
     try:
-        ipaddress.ip_address(token)
-        return token.replace('.', '[.]').replace(':', '[:]')
+        ip_obj = ipaddress.ip_address(token)
+        # Skip defanging if it's a private IP
+        if ip_obj.is_private:
+            return token
+        # For IPv4 addresses, replace dots with [.]
+        if ip_obj.version == 4:
+            return token.replace('.', '[.]')
+        # For IPv6 addresses, replace colons with [:]
+        elif ip_obj.version == 6:
+            return token.replace(':', '[:]')
     except ValueError:
         pass
 
-    parsed = urlparse(token)
+    # Handle email addresses
+    if "@" in token and "." in token:
+        return token.replace("@", "[at]")
+
+    # Handle URLs
+    try:
+        parsed = urlparse(token)
+    except ValueError:
+        return token
+
     if parsed.scheme and parsed.netloc:
         defanged_scheme = parsed.scheme.replace('http', 'hxxp')
         defanged_netloc = parsed.netloc.replace('.', '[.]')
@@ -29,6 +44,7 @@ def defang_token(token):
             new_url += "#" + parsed.fragment
         return new_url
 
+    # Handle domains (if not captured by URL parsing)
     if '.' in token:
         ext = tldextract.extract(token)
         if ext.domain and ext.suffix:
@@ -36,17 +52,23 @@ def defang_token(token):
 
     return token
 
+
 def refang_token(token):
     token = token.replace("[at]", "@")
     token = token.replace("[.]", ".").replace("[:]", ":")
-    token = re.sub(r'\bhxxp(s?)\b', r'http\1', token)
+    token = re.sub(r"\bhxxp(s?)\b", r"http\1", token)
     return token
 
+
 def defang_text(text):
-    return re.sub(r'\S+', lambda m: defang_token(m.group(0)), text)
+    iocs = extract_iocs(text)
+    save_buffer(iocs)  # Save for enrichment if needed
+    return re.sub(r"\S+", lambda m: defang_token(m.group(0)), text)
+
 
 def refang_text(text):
-    return re.sub(r'\S+', lambda m: refang_token(m.group(0)), text)
+    return re.sub(r"\S+", lambda m: refang_token(m.group(0)), text)
+
 
 def main():
     mode = "defang"
@@ -62,8 +84,11 @@ def main():
 
     sys.stdout.write(output)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
+
+
 
 
 

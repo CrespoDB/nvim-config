@@ -8,7 +8,7 @@ import json
 import base64
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from ioc_utils import extract_iocs, save_buffer
+from .ioc_utils import extract_iocs, save_buffer
 
 ABUSEIPDB_URL = "https://api.abuseipdb.com/api/v2/check"
 VT_FILE_URL = "https://www.virustotal.com/api/v3/files/{}"

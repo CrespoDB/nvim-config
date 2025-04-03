@@ -4,21 +4,33 @@ import re
 from urllib.parse import urlparse
 import tldextract
 import ipaddress
-from ioc_utils import extract_iocs, save_buffer
+from .ioc_utils import extract_iocs, save_buffer
 
 def defang_token(token):
+    token = token.strip()  # Remove any surrounding whitespace
+    try:
+        ip_obj = ipaddress.ip_address(token)
+    except ValueError:
+        ip_obj = None
+
+    if ip_obj is not None:
+        if ip_obj.is_private:
+            return token  # Do not defang private IPs
+        if ip_obj.version == 4:
+            return token.replace('.', '[.]')
+        elif ip_obj.version == 6:
+            return token.replace(':', '[:]')
+
+    # Handle email addresses
     if "@" in token and "." in token:
         return token.replace("@", "[at]")
 
+    # Handle URLs
     try:
-        ip_obj = ipaddress.ip_address(token)
-        if ip_obj.is_private:
-            return token  # Skip private IPs
-        return token.replace('.', '[.]').replace(':', '[:]')
+        parsed = urlparse(token)
     except ValueError:
-        pass
+        return token
 
-    parsed = urlparse(token)
     if parsed.scheme and parsed.netloc:
         defanged_scheme = parsed.scheme.replace('http', 'hxxp')
         defanged_netloc = parsed.netloc.replace('.', '[.]')
@@ -31,6 +43,7 @@ def defang_token(token):
             new_url += "#" + parsed.fragment
         return new_url
 
+    # Handle domains (if not caught by URL parsing)
     if '.' in token:
         ext = tldextract.extract(token)
         if ext.domain and ext.suffix:

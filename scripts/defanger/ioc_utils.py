@@ -20,7 +20,11 @@ def detect_ioc(token):
     if "@" in token and "." in token:
         return ("email", token)
 
-    parsed = urlparse(token)
+    try:
+        parsed = urlparse(token)
+    except ValueError:
+        return (None, token)
+
     if parsed.scheme and parsed.netloc:
         return ("url", token)
 
@@ -56,5 +60,6 @@ def save_buffer(iocs):
     os.makedirs(os.path.dirname(BUFFER_FILE), exist_ok=True)
     with open(BUFFER_FILE, "w") as f:
         json.dump(grouped, f, indent=2)
+
 
 
