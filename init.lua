@@ -14,7 +14,7 @@ vim.opt.relativenumber = true
 
 require("vim-options")
 require("lazy").setup("plugins")
-require("autocmds.defang")
+require("autocmds.defang").setup()
 require("autocmds.enrich").setup()
 require("cmds.ticket").setup()
 

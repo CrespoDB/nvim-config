@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="defanger",
-    version="0.2",
+    version="0.5",
     packages=find_packages(),
     install_requires=[
         "tldextract",
-        "requests",
+        "aiohttp",
     ],
     entry_points={
         "console_scripts": [

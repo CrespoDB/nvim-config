@@ -62,7 +62,7 @@ def refang_token(token):
 
 def defang_text(text):
     iocs = extract_iocs(text)
-    save_buffer(iocs)  # Save for enrichment if needed
+    save_buffer(iocs)
     return re.sub(r"\S+", lambda m: defang_token(m.group(0)), text)
 
 
@@ -87,9 +87,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-

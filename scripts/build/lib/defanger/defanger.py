@@ -10,17 +10,16 @@ def defang_token(token):
     token = token.strip()  # Remove any surrounding whitespace
     try:
         ip_obj = ipaddress.ip_address(token)
-        # Skip defanging if it's a private IP
+    except ValueError:
+        ip_obj = None
+
+    if ip_obj is not None:
         if ip_obj.is_private:
-            return token
-        # For IPv4 addresses, replace dots with [.]
+            return token  # Do not defang private IPs
         if ip_obj.version == 4:
             return token.replace('.', '[.]')
-        # For IPv6 addresses, replace colons with [:]
         elif ip_obj.version == 6:
             return token.replace(':', '[:]')
-    except ValueError:
-        pass
 
     # Handle email addresses
     if "@" in token and "." in token:
@@ -44,13 +43,14 @@ def defang_token(token):
             new_url += "#" + parsed.fragment
         return new_url
 
-    # Handle domains (if not captured by URL parsing)
+    # Handle domains (if not caught by URL parsing)
     if '.' in token:
         ext = tldextract.extract(token)
         if ext.domain and ext.suffix:
             return token.replace('.', '[.]')
 
     return token
+
 
 
 def refang_token(token):
@@ -62,7 +62,7 @@ def refang_token(token):
 
 def defang_text(text):
     iocs = extract_iocs(text)
-    save_buffer(iocs)  # Save for enrichment if needed
+    save_buffer(iocs)
     return re.sub(r"\S+", lambda m: defang_token(m.group(0)), text)
 
 
@@ -87,9 +87,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-

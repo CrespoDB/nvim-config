@@ -54,7 +54,6 @@ def save_buffer(iocs):
             grouped[ioc_type] = set()
         grouped[ioc_type].add(value)
 
-    # Convert sets to sorted lists for JSON compatibility
     grouped = {k: sorted(list(v)) for k, v in grouped.items()}
 
     os.makedirs(os.path.dirname(BUFFER_FILE), exist_ok=True)

@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: defanger
-Version: 0.2
+Version: 0.5
 Requires-Dist: tldextract
-Requires-Dist: requests
+Requires-Dist: aiohttp
 Dynamic: requires-dist
