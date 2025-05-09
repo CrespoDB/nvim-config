@@ -26,6 +26,8 @@ VT_FILE_URL   = "https://www.virustotal.com/api/v3/files/{}"
 VT_URL_LOOKUP = "https://www.virustotal.com/api/v3/urls/{}"
 VT_DOMAIN_URL = "https://www.virustotal.com/api/v3/domains/{}"
 VT_IP_URL     = "https://www.virustotal.com/api/v3/ip_addresses/{}"
+URLSCAN_SUBMIT_URL = "https://urlscan.io/api/v1/scan/"
+URLSCAN_RESULT_URL = "https://urlscan.io/api/v1/result/{}"
 
 # Cache files
 CACHE_FILE   = os.path.expanduser("~/.cache/ioc_enrichment_cache.json")
@@ -193,7 +195,6 @@ async def query_vt_url(url, api_key, session, max_retries=3, backoff_factor=1):
             "timestamp": time.time(),
         }
 
-
 async def query_vt_domain(domain, api_key, session, max_retries=3, backoff_factor=1):
     headers = {"x-apikey": api_key}
     try:
@@ -229,6 +230,23 @@ async def query_vt_domain(domain, api_key, session, max_retries=3, backoff_facto
             "timestamp": time.time(),
         }
 
+async def query_urlscan_submit(url, api_key, session, max_retries=3):
+    headers = {"API-Key": api_key, "Content-Type": "application/json"}
+    payload = {"url": url}
+    resp = await fetch_with_retries(session, URLSCAN_SUBMIT_URL, headers=headers, json_data=payload, method="POST", max_retries=max_retries)
+    return resp.get("uuid")
+
+async def query_urlscan_result(scan_uuid, api_key, session, max_retries=3, poll_interval=5, max_polls=10):
+    headers = {"API-Key": api_key}
+    for _ in range(max_polls):
+        try:
+            resp = await fetch_with_retries(session, URLSCAN_RESULT_URL.format(scan_uuid), headers=headers, max_retries=max_retries)
+            if resp.get("status") == "done" or resp.get("task", {}).get("state") == "done":
+                return resp
+            await asyncio.sleep(poll_interval)
+        except Exception:
+            await asyncio.sleep(poll_interval)
+    return {}
 
 def format_ts(ts):
     return time.strftime("%Y-%m-%d", time.localtime(ts)) if ts else "n/a"
