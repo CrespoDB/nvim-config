@@ -10,6 +10,17 @@ import base64
 from urllib.parse import urlparse
 from .ioc_utils import extract_iocs, save_buffer
 
+# API keys - const ENABLED_SERVICES will check what keys are provided.
+API_KEYS = {
+    "abuseipdb": os.getenv("ABUSEIPDB_KEY"),
+    "virustotal": os.getenv("VT_KEY"),
+    "urlscan": os.getenv("URLSCAN_KEY"),
+    "malwarebazaar": os.getenv("MALWAREBAZAAR_KEY"),
+}
+
+ENABLED_SERVICES = {k: v for k, v in API_KEYS.items() if v}
+
+
 # ANSI escape codes for color & style
 RESET   = "\033[0m"
 BOLD    = "\033[1m"
@@ -26,6 +37,8 @@ VT_FILE_URL   = "https://www.virustotal.com/api/v3/files/{}"
 VT_URL_LOOKUP = "https://www.virustotal.com/api/v3/urls/{}"
 VT_DOMAIN_URL = "https://www.virustotal.com/api/v3/domains/{}"
 VT_IP_URL     = "https://www.virustotal.com/api/v3/ip_addresses/{}"
+URLSCAN_SUBMIT_URL = "https://urlscan.io/api/v1/scan/"
+URLSCAN_RESULT_URL = "https://urlscan.io/api/v1/result/{}"
 
 # Cache files
 CACHE_FILE   = os.path.expanduser("~/.cache/ioc_enrichment_cache.json")
@@ -193,7 +206,6 @@ async def query_vt_url(url, api_key, session, max_retries=3, backoff_factor=1):
             "timestamp": time.time(),
         }
 
-
 async def query_vt_domain(domain, api_key, session, max_retries=3, backoff_factor=1):
     headers = {"x-apikey": api_key}
     try:
@@ -229,6 +241,23 @@ async def query_vt_domain(domain, api_key, session, max_retries=3, backoff_facto
             "timestamp": time.time(),
         }
 
+async def query_urlscan_submit(url, api_key, session, max_retries=3):
+    headers = {"API-Key": api_key, "Content-Type": "application/json"}
+    payload = {"url": url}
+    resp = await fetch_with_retries(session, URLSCAN_SUBMIT_URL, headers=headers, json_data=payload, method="POST", max_retries=max_retries)
+    return resp.get("uuid")
+
+async def query_urlscan_result(scan_uuid, api_key, session, max_retries=3, poll_interval=5, max_polls=10):
+    headers = {"API-Key": api_key}
+    for _ in range(max_polls):
+        try:
+            resp = await fetch_with_retries(session, URLSCAN_RESULT_URL.format(scan_uuid), headers=headers, max_retries=max_retries)
+            if resp.get("status") == "done" or resp.get("task", {}).get("state") == "done":
+                return resp
+            await asyncio.sleep(poll_interval)
+        except Exception:
+            await asyncio.sleep(poll_interval)
+    return {}
 
 def format_ts(ts):
     return time.strftime("%Y-%m-%d", time.localtime(ts)) if ts else "n/a"
@@ -248,7 +277,7 @@ def append_json(lines, label, obj, indent=4):
     append_multiline(lines, label, dump, indent)
 
 
-async def enrich_text(content, abuseipdb_key, vt_key, max_retries=3):
+async def enrich_text(content, enabled_services, max_retries=3):
     iocs = extract_iocs(content); save_buffer(iocs)
     ips = sorted({v for t, v in iocs if t == "ip"})
     hashes = sorted({v for t, v in iocs if t == "hash"})
@@ -262,96 +291,90 @@ async def enrich_text(content, abuseipdb_key, vt_key, max_retries=3):
     cache = load_cache(); updated = False
     async with aiohttp.ClientSession() as session:
         for ip in ips:
-            if ip in cache and not is_stale(cache[ip]):
-                abuse = cache[ip]
-            else:
+            lines.append(f"{BOLD}{YELLOW}🌐 IP: {ip}{RESET}\n\n")
+
+            if "abuseipdb" in enabled_services:
+                abuseipdb_key = enabled_services["abuseipdb"]
+                if ip in cache and not is_stale(cache[ip]):
+                    abuse = cache[ip]
+                else:
+                    await asyncio.sleep(1)
+                    abuse = await query_abuseipdb(ip, abuseipdb_key, session, max_retries)
+                    cache[ip] = abuse; updated = True
+
+                lines.append(f"  {MAGENTA}🐝 AbuseIPDB:{RESET}\n")
+                lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.abuseipdb.com/check/{ip}\n")
+                lines.append(f"    {GREEN}Score{RESET}    : {abuse.get('score','-')}\n")
+                lines.append(f"    {GREEN}Country{RESET}  : {abuse.get('country','-')}\n")
+                lines.append(f"    {GREEN}ISP{RESET}      : {abuse.get('isp','-')}\n")
+                lines.append(f"    {GREEN}Reports{RESET}  : {abuse.get('reports','-')}\n")
+                lines.append(f"    {GREEN}Last Seen{RESET}: {abuse.get('last_seen','-')}\n\n")
+
+            if "virustotal" in enabled_services:
+                vt_key = enabled_services["virustotal"]
                 await asyncio.sleep(1)
-                abuse = await query_abuseipdb(ip, abuseipdb_key, session, max_retries)
-                cache[ip] = abuse; updated = True
-            await asyncio.sleep(1)
-            vt = await query_vt_ip(ip, vt_key, session, max_retries)
-            stats = vt.get("last_analysis_stats", {})
+                vt = await query_vt_ip(ip, vt_key, session, max_retries)
+                stats = vt.get("last_analysis_stats", {})
 
-            lines.append(f"{BOLD}{YELLOW}🌐 IP: {ip}{RESET}\n")
-            lines.append("\n")
-            lines.append(f"  {MAGENTA}🐝 AbuseIPDB:{RESET}\n")
-            lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.abuseipdb.com/check/{ip}\n")
-            lines.append(f"    {GREEN}Score{RESET}    : {abuse.get('score','-')}\n")
-            lines.append(f"    {GREEN}Country{RESET}  : {abuse.get('country','-')}\n")
-            lines.append(f"    {GREEN}ISP{RESET}      : {abuse.get('isp','-')}\n")
-            lines.append(f"    {GREEN}Reports{RESET}  : {abuse.get('reports','-')}\n")
-            lines.append(f"    {GREEN}Last Seen{RESET}: {abuse.get('last_seen','-')}\n\n")
-            lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
-            lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.virustotal.com/gui/ip-address/{ip}\n")
-            lines.append(f"    {GREEN}Verdict{RESET}   : {stats.get('malicious',0)}/{stats.get('harmless',0)}\n")
-            lines.append(f"    {GREEN}Reverse DNS{RESET}: {vt.get('reverse_dns','-')}\n")
-            append_multiline(lines, f"{CYAN}WHOIS Org{RESET}", vt.get("whois_org",""), indent=4)
-            # To see comments
-            """
-            comments = await query_vt_comments("ip_addresses", ip, vt_key, session, max_retries)
-            for c in comments[:3]:
-                attributes = c.get("attributes", {})
-                author_info = attributes.get("author", {})
-                author = author_info.get("username", "Unknown")
-                text = attributes.get("text", "")
-                append_multiline(lines, f"{CYAN}Comment by {author}{RESET}", text, indent=4) """
+                lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
+                lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.virustotal.com/gui/ip-address/{ip}\n")
+                lines.append(f"    {GREEN}Verdict{RESET}   : {stats.get('malicious',0)}/{stats.get('harmless',0)}\n")
+                lines.append(f"    {GREEN}Reverse DNS{RESET}: {vt.get('reverse_dns','-')}\n")
+                append_multiline(lines, f"{CYAN}WHOIS Org{RESET}", vt.get("whois_org",""), indent=4)
 
+        if "virustotal" in enabled_services:
+            vt_key = enabled_services["virustotal"]
+            for h in hashes:
+                await asyncio.sleep(1)
+                r = await query_vt_file(h, vt_key, session, max_retries)
+                stats = r.get("last_analysis_stats", {}) 
 
-        for h in hashes:
-            await asyncio.sleep(1)
-            r = await query_vt_file(h, vt_key, session, max_retries)
-            stats = r.get("last_analysis_stats", {}) 
+                lines.append(f"{BOLD}{YELLOW}🔑 Hash: {h}{RESET}\n\n")
+                lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
+                lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.virustotal.com/gui/file/{h}\n") 
+                lines.append(f"    {GREEN}Last Seen{RESET}: {format_ts(r.get('last_analysis_date'))}\n")
+                lines.append(f"    {GREEN}Verdict{RESET}  : {stats.get('malicious',0)}/{stats.get('harmless',0)}\n")
+                lines.append(f"    {GREEN}Filename{RESET}: {r.get('names',['-'])[0]}\n")
+                lines.append(f"    {GREEN}First Seen{RESET}: {format_ts(r.get('first_submission_date'))}\n")
+                append_json(lines, f"{CYAN}Tags{RESET}", r.get("tags", []), indent=4)
 
-            lines.append(f"{BOLD}{YELLOW}🔑 Hash: {h}{RESET}\n")
-            lines.append("\n")
-            lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
-            lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.virustotal.com/gui/file/{h}\n") 
-            lines.append(f"    {GREEN}Last Seen{RESET}: {format_ts(r.get('last_analysis_date'))}\n")
-            lines.append(f"    {GREEN}Verdict{RESET}  : {stats.get('malicious',0)}/{stats.get('harmless',0)}\n")
-            lines.append(f"    {GREEN}Filename{RESET}: {r.get('names',['-'])[0]}\n")
-            lines.append(f"    {GREEN}First Seen{RESET}: {format_ts(r.get('first_submission_date'))}\n")
-            append_json(lines, f"{CYAN}Tags{RESET}", r.get("tags", []), indent=4)
+            for u in urls:
+                await asyncio.sleep(1)
+                r = await query_vt_url(u, vt_key, session, max_retries)
+                stats = r.get("last_analysis_stats", {})
 
-        for u in urls:
-            await asyncio.sleep(1)
-            r = await query_vt_url(u, vt_key, session, max_retries)
-            stats = r.get("last_analysis_stats", {})
+                lines.append(f"{BOLD}{YELLOW}🔗 URL: {u}{RESET}\n\n") 
+                lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
+                encoded = base64.urlsafe_b64encode(u.encode()).decode().strip("=")
+                vt_gui_url = f"https://www.virustotal.com/gui/url/{encoded}"
+                lines.append(f"    {BOLD}{GREEN}Link{RESET}     : {vt_gui_url}\n")
+                lines.append(f"    {GREEN}Verdict{RESET}  : {stats.get('malicious',0)}/{stats.get('harmless',0)}\n")
+                append_json(lines, f"{CYAN}Redirect Chain{RESET}", r.get("redirect_chain", []), indent=4)
+                append_multiline(lines, f"{CYAN}Final URL{RESET}", r.get("final_url",""), indent=4)
+                append_json(lines, f"{CYAN}URL Tags{RESET}", r.get("tags", []), indent=4)
+                lines.append(f"    {GREEN}Reputation{RESET}: {r.get('reputation',0)}\n\n")
 
-            lines.append(f"{BOLD}{YELLOW}🔗 URL: {u}{RESET}\n")
-            lines.append("\n") 
-            lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
-            encoded = base64.urlsafe_b64encode(u.encode()).decode().strip("=")
-            vt_gui_url = f"https://www.virustotal.com/gui/url/{encoded}"
-            lines.append(f"    {BOLD}{GREEN}Link{RESET}     : {vt_gui_url}\n")
-            lines.append(f"    {GREEN}Verdict{RESET}  : {stats.get('malicious',0)}/{stats.get('harmless',0)}\n")
-            append_json(lines, f"{CYAN}Redirect Chain{RESET}", r.get("redirect_chain", []), indent=4)
-            append_multiline(lines, f"{CYAN}Final URL{RESET}", r.get("final_url",""), indent=4)
-            append_json(lines, f"{CYAN}URL Tags{RESET}", r.get("tags", []), indent=4)
-            lines.append(f"    {GREEN}Reputation{RESET}: {r.get('reputation',0)}\n\n")
+            for d in domains:
+                await asyncio.sleep(1)
+                r = await query_vt_domain(d, vt_key, session, max_retries)
+                stats = r.get("last_analysis_stats", {})
 
-        for d in domains:
-            await asyncio.sleep(1)
-            r = await query_vt_domain(d, vt_key, session, max_retries)
-            stats = r.get("last_analysis_stats", {})
-
-            lines.append(f"{BOLD}{YELLOW}🏷️ Domain: {d}{RESET}\n")
-            lines.append("\n")
-            lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
-            lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.virustotal.com/gui/domain/{d}\n")
-            lines.append(f"    {GREEN}Verdict{RESET} : {stats.get('malicious',0)}/{stats.get('harmless',0)}\n")
-            append_json(lines, f"{CYAN}Categories{RESET}", r.get("categories", {}), indent=4)
-            append_multiline(lines, f"{CYAN}Registrar{RESET}", r.get("registrar",""), indent=4)
-            append_multiline(lines, f"{CYAN}Created{RESET}", format_ts(r.get("creation_date")), indent=4)
-            append_multiline(lines, f"{CYAN}Expires{RESET}", format_ts(r.get("expiration_date")), indent=4)
-            append_multiline(lines, f"{CYAN}Country{RESET}", r.get("registrant_country",""), indent=4)
-            append_json(lines, f"{CYAN}Subdomains{RESET}", r.get("subdomains", []), indent=4)
-            append_json(lines, f"{CYAN}DNS Records{RESET}", r.get("resolutions", []), indent=4)
+                lines.append(f"{BOLD}{YELLOW}🏷️ Domain: {d}{RESET}\n\n")
+                lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
+                lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.virustotal.com/gui/domain/{d}\n")
+                lines.append(f"    {GREEN}Verdict{RESET} : {stats.get('malicious',0)}/{stats.get('harmless',0)}\n")
+                append_json(lines, f"{CYAN}Categories{RESET}", r.get("categories", {}), indent=4)
+                append_multiline(lines, f"{CYAN}Registrar{RESET}", r.get("registrar",""), indent=4)
+                append_multiline(lines, f"{CYAN}Created{RESET}", format_ts(r.get("creation_date")), indent=4)
+                append_multiline(lines, f"{CYAN}Expires{RESET}", format_ts(r.get("expiration_date")), indent=4)
+                append_multiline(lines, f"{CYAN}Country{RESET}", r.get("registrant_country",""), indent=4)
+                append_json(lines, f"{CYAN}Subdomains{RESET}", r.get("subdomains", []), indent=4)
+                append_json(lines, f"{CYAN}DNS Records{RESET}", r.get("resolutions", []), indent=4)
 
     if updated:
         save_cache(cache)
 
     return "".join(lines)
-
 
 async def main_async():
     parser = argparse.ArgumentParser(description="IOC Enrichment Tool")
@@ -359,19 +382,17 @@ async def main_async():
     parser.add_argument("--max-retries", type=int, default=3)
     args = parser.parse_args()
 
-    abuseipdb_key = os.getenv("ABUSEIPDB_KEY")
-    vt_key = os.getenv("VT_KEY")
-    if not abuseipdb_key:
-        print("[!] ABUSEIPDB_KEY missing"); sys.exit(1)
-    if not vt_key:
-        print("[!] VT_KEY missing"); sys.exit(1)
+    if not ENABLED_SERVICES:
+        print("[!] No usable API keys found — exiting.")
+        sys.exit(1)
 
     if args.file:
         content = open(args.file).read()
     else:
         content = sys.stdin.read()
 
-    print(await enrich_text(content, abuseipdb_key, vt_key, args.max_retries))
+    print(await enrich_text(content, ENABLED_SERVICES, args.max_retries))
+
 
 
 def main():

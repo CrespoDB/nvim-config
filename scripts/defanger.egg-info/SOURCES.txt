@@ -3,6 +3,7 @@ defanger/__init__.py
 defanger/defanger.py
 defanger/enricher.py
 defanger/ioc_utils.py
+defanger/settings.py
 defanger.egg-info/PKG-INFO
 defanger.egg-info/SOURCES.txt
 defanger.egg-info/dependency_links.txt

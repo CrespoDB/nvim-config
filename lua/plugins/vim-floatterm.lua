@@ -1,7 +1,7 @@
 return {
 	"voldikss/vim-floaterm",
 	config = function()
-		-- Adjust the size and appearance of the floaterm
+		-- Adjusts the size and appearance of the floaterm
 		vim.g.floaterm_width = 0.7
 		vim.g.floaterm_height = 0.7
 		vim.g.floaterm_wintype = "float"
