@@ -18,7 +18,26 @@ function M.setup()
 
 		local lines = vim.fn.readfile(template_path)
 		vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+		-- Start investigation timer
+		_G.investigation_start = os.time()
+		vim.notify("🕒 Investigation started at " .. os.date("%H:%M:%S", _G.investigation_start), vim.log.levels.INFO)
 	end, { desc = "Create a new plain ticket note from template" })
+
+	vim.api.nvim_create_user_command("StopTicket", function()
+		if _G.investigation_start then
+			local duration = os.difftime(os.time(), _G.investigation_start)
+			local minutes = math.floor(duration / 60)
+			local seconds = duration % 60
+			vim.notify(
+				string.format("✅ Investigation ended. Duration: %02dm:%02ds", minutes, seconds),
+				vim.log.levels.INFO
+			)
+			_G.investigation_start = nil
+		else
+			vim.notify("No active investigation timer.", vim.log.levels.WARN)
+		end
+	end, { desc = "Stop the current investigation timer" })
 
 	vim.api.nvim_create_user_command("InsertTemplate", function()
 		local pickers = require("telescope.pickers")
@@ -67,11 +86,6 @@ function M.setup()
 						if not lines or vim.tbl_isempty(lines) then
 							print("⚠️ Template is empty or unreadable.")
 							return
-						end
-
-						print("📄 Template contents:")
-						for _, l in ipairs(lines) do
-							print(l)
 						end
 
 						local buf_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
