@@ -5,7 +5,8 @@ return {
 	priority = 1000,
 	config = function()
 		require("catppuccin").setup({
-			transparent_background = true,
+			flavour = "latte",
+			transparent_background = false,
 		})
 		vim.cmd.colorscheme("catppuccin")
 	end,

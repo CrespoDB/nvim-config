@@ -14,7 +14,6 @@ API_KEYS = {
     "abuseipdb": os.getenv("ABUSEIPDB_KEY"),
     "virustotal": os.getenv("VT_KEY"),
     "urlscan": os.getenv("URLSCAN_KEY"),
-    "malwarebazaar": os.getenv("MALWAREBAZAAR_KEY"),
 }
 
 ENABLED_SERVICES = {k: v for k, v in API_KEYS.items() if v}
@@ -64,20 +63,22 @@ def is_stale(entry, max_age_hours=24):
 
 
 async def fetch_with_retries(session, url, headers=None, params=None,
+                             json_data=None, method="GET",
                              max_retries=3, backoff_factor=1, timeout=10):
     for attempt in range(max_retries):
         try:
-            async with session.get(url,
-                                   headers=headers,
-                                   params=params,
-                                   timeout=timeout) as resp:
-                resp.raise_for_status()
-                return await resp.json()
-        except Exception:
+            if method.upper() == "POST":
+                async with session.post(url, headers=headers, json=json_data, timeout=timeout) as resp:
+                    resp.raise_for_status()
+                    return await resp.json()
+            else:
+                async with session.get(url, headers=headers, params=params, timeout=timeout) as resp:
+                    resp.raise_for_status()
+                    return await resp.json()
+        except Exception as e:
             if attempt == max_retries - 1:
                 raise
             await asyncio.sleep(backoff_factor * (2 ** attempt))
-
 
 # AbuseIPDB query
 async def query_abuseipdb(ip, api_key, session, max_retries=3, backoff_factor=1):
@@ -128,6 +129,30 @@ async def query_vt_ip(ip, api_key, session, max_retries=3, backoff_factor=1):
             "whois_org": "-",
             "timestamp": time.time(),
         }
+
+async def query_malwarebazaar(hash_value, session, max_retries=3, backoff_factor=1):
+    url = "https://mb-api.abuse.ch/api/v1/"
+    payload = {"query": "get_info", "hash": hash_value}
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        resp = await fetch_with_retries(
+            session, url,
+            headers=headers,
+            json_data=payload,
+            method="POST",
+            max_retries=max_retries,
+            backoff_factor=backoff_factor
+        )
+
+        print("[MalwareBazaar DEBUG] Raw response:")
+        print(json.dumps(resp, indent=2))  # <- Add this to see what's wrong
+
+        return resp
+    except Exception as e:
+        print("[MalwareBazaar ERROR]", str(e))
+        return {"error": str(e)}
+
 
 # Gets community comments from VT
 """
@@ -321,14 +346,15 @@ async def enrich_text(content, enabled_services, max_retries=3):
                 lines.append(f"    {GREEN}Reverse DNS{RESET}: {vt.get('reverse_dns','-')}\n")
                 append_multiline(lines, f"{CYAN}WHOIS Org{RESET}", vt.get("whois_org",""), indent=4)
 
-        if "virustotal" in enabled_services:
-            vt_key = enabled_services["virustotal"]
-            for h in hashes:
+        for h in hashes:
+            lines.append(f"{BOLD}{YELLOW}🔑 Hash: {h}{RESET}\n\n")
+
+            if "virustotal" in enabled_services:
+                vt_key = enabled_services["virustotal"]
                 await asyncio.sleep(1)
                 r = await query_vt_file(h, vt_key, session, max_retries)
                 stats = r.get("last_analysis_stats", {}) 
 
-                lines.append(f"{BOLD}{YELLOW}🔑 Hash: {h}{RESET}\n\n")
                 lines.append(f"  {CYAN}🔍 VirusTotal:{RESET}\n")
                 lines.append(f"    {BOLD}{GREEN}Link{RESET}     : https://www.virustotal.com/gui/file/{h}\n") 
                 lines.append(f"    {GREEN}Last Seen{RESET}: {format_ts(r.get('last_analysis_date'))}\n")
@@ -336,6 +362,22 @@ async def enrich_text(content, enabled_services, max_retries=3):
                 lines.append(f"    {GREEN}Filename{RESET}: {r.get('names',['-'])[0]}\n")
                 lines.append(f"    {GREEN}First Seen{RESET}: {format_ts(r.get('first_submission_date'))}\n")
                 append_json(lines, f"{CYAN}Tags{RESET}", r.get("tags", []), indent=4)
+
+                await asyncio.sleep(1)
+                mb = await query_malwarebazaar(h, session, max_retries)
+                lines.append(f"  {MAGENTA}🧪 MalwareBazaar:{RESET}\n")
+                if mb.get("query_status") == "ok" and mb.get("data"):
+                    sample = mb["data"][0]
+                    lines.append(f"    {GREEN}Signature{RESET}: {sample.get('signature','-')}\n")
+                    lines.append(f"    {GREEN}File Type{RESET}: {sample.get('file_type','-')}\n")
+                    lines.append(f"    {GREEN}Delivery Method{RESET}: {sample.get('delivery_method','-')}\n")
+                    lines.append(f"    {GREEN}First Seen{RESET}: {sample.get('first_seen','-')}\n")
+                else:
+                    lines.append(f"    {RED}No result found or error occurred.{RESET}\n")
+                lines.append("\n")
+
+        if "virustotal" in enabled_services:
+            vt_key = enabled_services["virustotal"]
 
             for u in urls:
                 await asyncio.sleep(1)
@@ -374,6 +416,7 @@ async def enrich_text(content, enabled_services, max_retries=3):
         save_cache(cache)
 
     return "".join(lines)
+
 
 async def main_async():
     parser = argparse.ArgumentParser(description="IOC Enrichment Tool")

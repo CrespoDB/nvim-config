@@ -1,4 +1,3 @@
-# defanger.py
 import sys
 import re
 from urllib.parse import urlparse
@@ -7,7 +6,7 @@ import ipaddress
 from .ioc_utils import extract_iocs, save_buffer
 
 def defang_token(token):
-    token = token.strip()  # Remove any surrounding whitespace
+    token = token.strip()
     try:
         ip_obj = ipaddress.ip_address(token)
     except ValueError:
@@ -15,17 +14,16 @@ def defang_token(token):
 
     if ip_obj is not None:
         if ip_obj.is_private:
-            return token  # Do not defang private IPs
+            return token 
         if ip_obj.version == 4:
             return token.replace('.', '[.]')
         elif ip_obj.version == 6:
             return token.replace(':', '[:]')
 
-    # Handle email addresses
+
     if "@" in token and "." in token:
         return token.replace("@", "[at]")
 
-    # Handle URLs
     try:
         parsed = urlparse(token)
     except ValueError:
@@ -43,7 +41,7 @@ def defang_token(token):
             new_url += "#" + parsed.fragment
         return new_url
 
-    # Handle domains (if not caught by URL parsing)
+    # Handles domains (if not caught by URL parsing)
     if '.' in token:
         ext = tldextract.extract(token)
         if ext.domain and ext.suffix:
