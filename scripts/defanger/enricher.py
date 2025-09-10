@@ -79,6 +79,7 @@ async def query_vt_ip(ip, api_key, session, max_retries=3, backoff_factor=1):
             "timestamp": time.time(),
         }
 
+## TO-DO: https://hunting.abuse.ch/
 async def query_malwarebazaar(hash_value, session, max_retries=3, backoff_factor=1):
     url = "https://mb-api.abuse.ch/api/v1/"
     payload = {"query": "get_info", "hash": hash_value}
