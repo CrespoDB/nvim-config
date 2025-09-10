@@ -4,6 +4,7 @@ defanger/cache.py
 defanger/defanger.py
 defanger/enricher.py
 defanger/ioc_utils.py
+defanger/provider_registry.py
 defanger/settings.py
 defanger.egg-info/PKG-INFO
 defanger.egg-info/SOURCES.txt
@@ -11,3 +12,9 @@ defanger.egg-info/dependency_links.txt
 defanger.egg-info/entry_points.txt
 defanger.egg-info/requires.txt
 defanger.egg-info/top_level.txt
+defanger/providers/__init__.py
+defanger/providers/abuseipdb.py
+defanger/providers/base.py
+defanger/providers/malwarebazaar.py
+defanger/providers/urlscan.py
+defanger/providers/virustotal.py
