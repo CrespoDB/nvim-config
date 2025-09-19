@@ -12,6 +12,7 @@ setup(
         "console_scripts": [
             "defanger=defanger.defanger:main",
             "enricher=defanger.enricher:main",
+            "mdr-parse=defanger.mdr_parser:main",
         ],
     },
 )

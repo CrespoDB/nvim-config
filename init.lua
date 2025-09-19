@@ -16,6 +16,7 @@ require("vim-options")
 require("lazy").setup("plugins")
 require("autocmds.defang").setup()
 require("autocmds.enrich").setup()
+require("autocmds.mdr_parser").setup()
 require("cmds.ticket").setup()
 require("cmds.daily-todo")
 

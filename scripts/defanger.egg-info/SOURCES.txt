@@ -4,6 +4,7 @@ defanger/cache.py
 defanger/defanger.py
 defanger/enricher.py
 defanger/ioc_utils.py
+defanger/mdr_parser.py
 defanger/provider_registry.py
 defanger/settings.py
 defanger.egg-info/PKG-INFO

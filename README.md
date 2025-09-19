@@ -165,3 +165,27 @@ Java needed for speel check LSP (ltex)
 sudo apt install openjdk-17-jre-headless
 ```
 
+---
+
+## 🔍 MDR Entity Parser
+
+Format Microsoft Defender/Sentinel entity data for customer sharing:
+
+1. Copy entity data from Defender/Sentinel alert
+2. Paste into Neovim
+3. Select the text in visual mode
+4. Press `gm` to format
+
+Converts:
+```
+Client_IPAddress
+80.167.104.143
+EmailCount204
+```
+
+To:
+```
+Client IP Address: 80.167.104.143
+Email Count: 204
+```
+
