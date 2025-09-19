@@ -174,7 +174,7 @@ How to use parsing tool for copied entity data>
 1. Copy entity data from Defender/Sentinel alert
 2. Paste into Neovim
 3. Select the text in visual mode
-4. Press `gm` to format
+4. Press `space` + `gm` to format
 
 Converts:
 ```
@@ -188,4 +188,16 @@ To:
 Client IP Address: 80.167.104.143
 Email Count: 204
 ```
+## 💰 Auto-Enricher
+
+This will automatically iterate through all elements in the buffer to find interesting indicators (IPs, Hashes, Domains and URLs)
+
+1. Press `space` + `e` to call the enricher, which will display a floating window with details
+2. :q to get out of the window
+
+##  Defanger / Refanger
+
+This will use the same iteration as the Auto-Enricher, but will defang the indicators
+
+Write :Defang or :Refang to invoke the tool
 
