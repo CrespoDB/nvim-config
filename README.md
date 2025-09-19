@@ -169,7 +169,7 @@ sudo apt install openjdk-17-jre-headless
 
 ## 🔍 MDR Entity Parser
 
-Format Microsoft Defender/Sentinel entity data for customer sharing:
+How to use parsing tool for copied entity data>
 
 1. Copy entity data from Defender/Sentinel alert
 2. Paste into Neovim
