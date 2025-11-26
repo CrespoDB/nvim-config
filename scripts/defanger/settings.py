@@ -5,6 +5,8 @@ API_KEYS = {
     "abuseipdb": os.getenv("ABUSEIPDB_KEY"),
     "virustotal": os.getenv("VT_KEY"),
     "urlscan": os.getenv("URLSCAN_KEY"),
+    "ip2location": os.getenv("IP2LOCATION_KEY"),
+    "ipqualityscore": os.getenv("IPQUALITYSCORE_KEY"),
 }
 
 ENABLED_SERVICES = {k: v for k, v in API_KEYS.items() if v}

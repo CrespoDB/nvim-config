@@ -16,6 +16,8 @@ defanger.egg-info/top_level.txt
 defanger/providers/__init__.py
 defanger/providers/abuseipdb.py
 defanger/providers/base.py
+defanger/providers/ip2location.py
+defanger/providers/ipqualityscore.py
 defanger/providers/malwarebazaar.py
 defanger/providers/urlscan.py
 defanger/providers/virustotal.py

@@ -32,6 +32,63 @@ async def fetch_with_retries(session, url, headers=None, params=None,
             await asyncio.sleep(backoff_factor * (2 ** attempt))
 
 
+def aggregate_anonymizer_data(provider_results):
+    """Aggregate VPN/Proxy/Tor detection data from all providers"""
+    anonymizer_data = {
+        'detected': False,
+        'proxy': False,
+        'vpn': False,
+        'tor': False,
+        'active_vpn': False,
+        'active_tor': False,
+        'sources': []
+    }
+    
+    for provider_name, data in provider_results.items():
+        if 'error' in data:
+            continue
+            
+        # IPQualityScore data
+        if provider_name == 'IPQualityScore':
+            if data.get('proxy', False):
+                anonymizer_data['proxy'] = True
+                anonymizer_data['detected'] = True
+                anonymizer_data['sources'].append(f"Proxy ({provider_name})")
+            if data.get('vpn', False):
+                anonymizer_data['vpn'] = True
+                anonymizer_data['detected'] = True
+                anonymizer_data['sources'].append(f"VPN ({provider_name})")
+            if data.get('tor', False):
+                anonymizer_data['tor'] = True
+                anonymizer_data['detected'] = True
+                anonymizer_data['sources'].append(f"Tor ({provider_name})")
+            if data.get('active_vpn', False):
+                anonymizer_data['active_vpn'] = True
+                anonymizer_data['detected'] = True
+                anonymizer_data['sources'].append(f"Active VPN ({provider_name})")
+            if data.get('active_tor', False):
+                anonymizer_data['active_tor'] = True
+                anonymizer_data['detected'] = True
+                anonymizer_data['sources'].append(f"Active Tor ({provider_name})")
+        
+        # IP2Location data
+        elif provider_name == 'IP2Location':
+            if data.get('is_proxy', False):
+                anonymizer_data['proxy'] = True
+                anonymizer_data['detected'] = True
+                anonymizer_data['sources'].append(f"Proxy ({provider_name})")
+            if data.get('is_vpn', False):
+                anonymizer_data['vpn'] = True
+                anonymizer_data['detected'] = True
+                anonymizer_data['sources'].append(f"VPN ({provider_name})")
+            if data.get('is_tor', False):
+                anonymizer_data['tor'] = True
+                anonymizer_data['detected'] = True
+                anonymizer_data['sources'].append(f"Tor ({provider_name})")
+    
+    return anonymizer_data
+
+
 async def enrich_text(content, enabled_services, max_retries=3):
     iocs = extract_iocs(content); save_buffer(iocs)
     ips = sorted({v for t, v in iocs if t == "ip"})
@@ -62,7 +119,10 @@ async def enrich_text(content, enabled_services, max_retries=3):
             for ioc_value in ioc_list:
                 lines.append(f"{BOLD}{YELLOW}{icon}: {ioc_value}{RESET}\n\n")
                 
-                # Display active providers
+                # Collect provider results for aggregation (IP anonymizer detection)
+                provider_results = {}
+                
+                # Query all providers first to collect data
                 for provider in providers:
                     # Check cache for some providers (like AbuseIPDB)
                     cache_key = f"{provider.name}_{ioc_value}"
@@ -82,9 +142,42 @@ async def enrich_text(content, enabled_services, max_retries=3):
                             cache[cache_key] = extracted_data
                             updated = True
                     
-                    # Format and display the result
+                    # Store provider results for aggregation
+                    provider_results[provider.name] = extracted_data
+                
+                # Show anonymizer detection FIRST for IPs (if detected)
+                if ioc_type == "ip":
+                    anonymizer_data = aggregate_anonymizer_data(provider_results)
+                    if anonymizer_data['detected']:
+                        lines.append(f"  {RED}🚩 ANONYMIZER DETECTED{RESET}\n")
+                        detection_types = []
+                        if anonymizer_data['active_vpn']:
+                            detection_types.append(f"{RED}Active VPN{RESET}")
+                        elif anonymizer_data['vpn']:
+                            detection_types.append(f"{RED}VPN{RESET}")
+                        if anonymizer_data['active_tor']:
+                            detection_types.append(f"{RED}Active Tor{RESET}")
+                        elif anonymizer_data['tor']:
+                            detection_types.append(f"{RED}Tor{RESET}")
+                        if anonymizer_data['proxy'] and not anonymizer_data['vpn'] and not anonymizer_data['tor']:
+                            detection_types.append(f"{RED}Proxy{RESET}")
+                        
+                        if detection_types:
+                            lines.append(f"    {GREEN}Type{RESET}     : {', '.join(detection_types)}\n")
+                        
+                        # Add Spur.us link
+                        lines.append(f"    {GREEN}Analysis{RESET} : https://spur.us/context/{ioc_value}\n")
+                        lines.append("\n")
+                
+                # Display provider results
+                for provider in providers:
+                    extracted_data = provider_results[provider.name]
                     display_lines = provider.format_display(ioc_value, ioc_type, extracted_data)
                     lines.extend(display_lines)
+                
+                # Show "NO ANONYMIZER DETECTED" only if no anonymizer was found for IPs
+                if ioc_type == "ip" and not aggregate_anonymizer_data(provider_results)['detected']:
+                    lines.append(f"  {GREEN}✅ NO ANONYMIZER DETECTED{RESET}\n\n")
                 
                 # Display information about missing providers
                 if missing_providers:

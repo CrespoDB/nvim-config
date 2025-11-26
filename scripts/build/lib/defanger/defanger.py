@@ -16,7 +16,11 @@ def defang_token(token):
         if ip_obj.is_private:
             return token 
         if ip_obj.version == 4:
-            return token.replace('.', '[.]')
+            # Only defang the last dot before the final octet
+            parts = token.split('.')
+            if len(parts) >= 2:
+                return '.'.join(parts[:-1]) + '[.]' + parts[-1]
+            return token
         elif ip_obj.version == 6:
             return token.replace(':', '[:]')
 
