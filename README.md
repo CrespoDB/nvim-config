@@ -238,7 +238,6 @@ exec $SHELL
                 "hidden": false,
                 "name": "kali-linux",
                 "source": "Windows.Terminal.Wsl",
-                "startingDirectory": "C:\\Users\\NikolaosPavlidis\\OneDrive - CSIS Security Group A S\\Documents\\Investigation Archive"
             },
             {
                 "commandline": "%SystemRoot%\\System32\\cmd.exe",
