@@ -2,9 +2,9 @@
 
 ## WSL Setup
 
-wsl --install
+`wsl --install`
 
-sudo apt install ripgrep
+`sudo apt install ripgrep`
 
 ## Neovim (v0.10+ or v0.11+)
 This config requires a modern Neovim version.  
