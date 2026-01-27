@@ -98,6 +98,7 @@ exec $SHELL
 
 ## Windows Terminal Appearance & Font
 
+```
 {
     "$help": "https://aka.ms/terminal-documentation",
     "$schema": "https://aka.ms/terminal-profiles-schema",
@@ -370,6 +371,7 @@ exec $SHELL
     "themes": [],
     "useAcrylicInTabRow": true
 }
+```
 
 Font: JetBrainsMono Nerd Font
 
