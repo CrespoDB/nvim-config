@@ -12,12 +12,14 @@ return {
 				null_ls.builtins.formatting.clang_format.with({
 					extra_args = { "--style=llvm" },
 				}),
+				null_ls.builtins.formatting.prettierd,
+			null_ls.builtins.diagnostics.eslint_d,
 			},
 		})
 
 		-- Auto-format on save
 		vim.api.nvim_create_autocmd("BufWritePre", {
-			pattern = { "*.go", "*.lua", "*.c", "*.cpp" },
+			pattern = { "*.go", "*.lua", "*.c", "*.cpp", "*.ts", "*.tsx", "*.js", "*.jsx" },
 			callback = function()
 				vim.lsp.buf.format()
 			end,
