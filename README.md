@@ -1,4 +1,4 @@
-# Neovim Config Dependencies
+# Neovim Config Dependencies and replication of coding / documentation workflows
 
 ## WSL Setup
 
@@ -12,89 +12,96 @@ Tested with: https://github.com/CrespoDB/nvim-config
 
 Install (AppImage for x86_64):
 
+```
 curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
 chmod u+x nvim-linux-x86_64.appimage
 sudo mv nvim-linux-x86_64.appimage /usr/local/bin/nvim
 nvim --version
+```
 
 ## Install This Config
 
 Clone your config into the correct location:
 
-rm -rf ~/.config/nvim  # Optional: remove old config
-git clone https://github.com/CrespoDB/nvim-config ~/.config/nvim
+`git clone https://github.com/CrespoDB/nvim-config ~/.config/nvim`
 
 Launch Neovim to let plugins install:
 
-nvim
+`nvim`
 
 ## Golang & GolangCI-Lint
 
-# Install Go
-curl -LO https://go.dev/dl/go1.22.1.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.22.1.linux-amd64.tar.gz
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-source ~/.bashrc
-go version
-
 # Install golangci-lint
+
+```
 curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/.local/bin v1.55.2
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
+```
 
 ## Node.js & Python
 
+```
 sudo apt update
 sudo apt install -y nodejs npm python3 python3-pip unzip curl
+```
 
-# Install language servers globally
-sudo npm install -g pyright typescript typescript-language-server
+# Install Pyright / TS language server
+`sudo npm install -g pyright typescript typescript-language-server`
 
 ## Fix Permissions (if Mason fails to install)
 
-sudo chown -R $(whoami):$(whoami) ~/.local/share/nvim
+`sudo chown -R $(whoami):$(whoami) ~/.local/share/nvim`
 
-## Clean Up Broken Mason Installs (if needed)
+## Clean Up Broken Mason Installs (if needed) and install optionals via Mason
 
+```
 rm -rf ~/.local/share/nvim/mason/staging/pyright
 rm -rf ~/.local/share/nvim/mason/staging/typescript-language-server
 rm -rf ~/.local/share/nvim/mason/packages/pyright
 rm -rf ~/.local/share/nvim/mason/packages/typescript-language-server
+```
 
-Install VTLS via Mason (If not already installed via LSP config)
-Install eslint_d linter via Mason
-Install Prettierd Formatter via Mason
+- Install VTLS via Mason (If not already installed via LSP config)
+- Install eslint_d linter via Mason
+- Install Prettierd Formatter via Mason
 
 ## Pipx (for isolated Python CLI tools)
 
+```
 sudo apt install -y pipx
 pipx ensurepath
 pipx --version
+```
 
 You may need to restart your shell:
 
-exec $SHELL
+`exec $SHELL`
 
 ## Install Local Python Scripts (Optional)
 
+```
 cd ~/.config/nvim/scripts
 pipx install .
+```
 
 ## Rust & Cargo (for Stylua)
 
+```
 curl https://sh.rustup.rs -sSf | sh
 source $HOME/.cargo/env
+```
 
 # Lua formatter
-cargo install stylua
+`cargo install stylua`
 
 ## Clang Format
 
-sudo apt install -y clang-format
+`sudo apt install -y clang-format`
 
 ## Restart Shell
 
-exec $SHELL
+`exec $SHELL`
 
 ## Windows Terminal Appearance & Font
 
@@ -377,15 +384,13 @@ Font: JetBrainsMono Nerd Font
 
 ## For Markdown
 
-sudo snap install glow
-
 Vault location (can be changed in obsidian.lua)
 
-mkdir -p ~/notes
+`mkdir -p ~/notes`
 
 Java needed for spell check LSP (ltex)
 
-sudo apt install openjdk-17-jre-headless
+`sudo apt install openjdk-17-jre-headless`
 
 ## MDR Entity Parser
 
